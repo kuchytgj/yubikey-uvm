@@ -2,32 +2,135 @@
 
 use strict;
 
-#./ykpersonalize -1 -ofixed=
+use Config::Simple;
+use Data::Dumper;
+use File::Basename;
+use Getopt::Long;
+
+use lib './';
+use Duo::API;
+
+my $config_file = '/etc/duo/authapi.cfg';
+
+my $config = new Config::Simple($config_file);
+
+my $LSUSB_BIN = '/bin/lsusb';
 my $YKI_BIN = '/usr/local/src/yubikey-personalization/ykinfo';
 my $YKP_BIN = '/usr/local/src/yubikey-personalization/ykpersonalize';
 
-sub accept_input {
-	my $input = <STDIN>;
-	chomp $input;
-	return $input;
+my $YK_VID = '1050';
+my $YK_PID = '0010';
+
+my $script_name = basename($0);
+
+use constant {
+	YK_NOERR => 0,
+	YK_ERR => 1,
+	YKERR_NODEV => 10,
+	YKERR_MULDEV => 11,
+	YKERR_NOUSER => 20,
+};
+
+my $debug;
+my $dryrun;
+my $netid;
+
+GetOptions(
+	"debug" => \$debug,
+	"dryrun" => \$dryrun,
+	"netid=s" => \$netid,
+);
+
+sub usage {
+	print "usage: $script_name --netid netid\n";
+	print "Options:\n";
+	print "     --netid          The netid to assign the current token to\n";
 }
 
-#print "Short press the YubiKey now: ";
-#my $token = accept_input();
+unless ($netid) {
+	usage();
+	exit YK_ERR;
+}
 
-#my $public_id = substr($token, 0, 12);
+my $resp;
+my $duo_api = Duo::API->new($config->param('IKEY'), $config->param('SKEY'), $config->param('APIHOST'));
+
+# Check to make sure the user exists in Duo
+eval {
+	$resp = $duo_api->json_api_call('GET', '/admin/v1/users', {'username'=>$netid});
+};
+
+if ($@) {
+	print STDERR $@;
+	exit YK_ERR;
+}
+
+unless(scalar(@$resp)) {
+	print STDERR "No such user\n";
+	exit YKERR_NOUSER;
+};
+
+my $user = shift(@$resp);
+my $duo_user_id = $user->{'user_id'};
+
+# Check to make sure that one (and only one) yubikey is plugged in
+my $usb_output = `$LSUSB_BIN -d '$YK_VID:$YK_PID'`;
+my $exit_code = $? >> 8;
+if (0 != $exit_code) {
+	print STDERR "No YubiKey devices present!\n";
+	exit YKERR_NODEV;
+}
+my $line_count = scalar(split(/\n/, $usb_output));
+
+if ($line_count > 1) {
+	print STDERR "Multiple YubiKey devices present! Please only plug-in one YubiKey at a time\n";
+	exit YKERR_MULDEV;
+}
+
+# Pull info from the YubiKey and generate new keys and public id
 my $public_id = `modhex -h \$(openssl rand -hex 6)`;
 chomp $public_id;
+
 my $aes_key = lc(`openssl enc -aes-128-cbc -k \$(openssl rand -base64 32) -nosalt -P|grep key=|tr -d 'key='`);
 chomp $aes_key;
+
 my $serial = `$YKI_BIN -s | grep -o -P '(\\d+)'`;
 chomp $serial;
+
+# We use a zeroed private id as this is only useful when the AES key is shared between multiple YubiKeys
 my $private_id = '0' x 12;
 
-print "serial: $serial\n";
-print "public id: $public_id\n";
-print "private_id: $private_id\n";
-print "aes key: $aes_key\n";
-#print "token: $token\n";
+print "serial: $serial\n" if $debug;
+print "public id: $public_id\n" if $debug;
+print "private_id: $private_id\n" if $debug;
+print "aes key: $aes_key\n" if $debug;
 
-my $out = `$YKP_BIN -d -y -1 -a$aes_key -ouid=$private_id -ofixed=$public_id -oserial-api-visible`;
+# Burn the info to the YubiKey
+if ($dryrun) {
+	$YKP_BIN .= ' -d';
+}
+my $out = `$YKP_BIN -y -1 -a$aes_key -ouid=$private_id -ofixed=$public_id -oserial-api-visible 2>&1`;
+
+unless($dryrun) {
+	eval {
+		$resp = $duo_api->json_api_call('POST', '/admin/v1/tokens', {'type'=>'yk', 'serial' => $serial, 'private_id' => $private_id, 'aes_key' => $aes_key});
+	};
+
+	if ($@) {
+		# don't die
+		warn $@;
+	}
+
+	my $duo_token_id = $resp->{'token_id'};
+
+
+	eval {
+		$resp = $duo_api->json_api_call('POST', "/admin/v1/users/$duo_user_id/tokens", {'token_id'=>$duo_token_id});
+	};
+
+	if ($@) {
+		warn $@;
+	}
+}
+
+exit YK_NOERR;
