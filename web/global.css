@@ -1,0 +1,48 @@
+body {
+	font-family: helvetica, arial, sans-serif;
+}
+
+.ykPresent {
+	color: #389441;
+}
+
+.ykMissing {
+	color: #974B29;
+}
+
+#stage {
+	margin: 0 auto;
+	text-align: center;
+}
+
+#ykForm {
+	background-color: #CFCFCF;
+	border-radius: 1em;
+	margin: 0 auto;
+	padding: 1em;
+	width: 30em;
+}
+
+#ykForm > div {
+	margin: .5em;
+}
+
+#ykStatusContainer {
+	font-size: 2em;
+	margin: .5em .5em 1em .5em !important;
+}
+
+input,button {
+	font-size: 2em;
+}
+
+#consoleOutput {
+	background-color: #FFFFFF;
+	border: 1px solid #ADADAD;
+	font-family: monospace;
+	height: 10em;
+	overflow: auto;
+	padding: .25em;
+	text-align: left;
+	width: 95%;
+}

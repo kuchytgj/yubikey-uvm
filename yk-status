@@ -1,0 +1,27 @@
+#!/usr/bin/perl -w
+
+use strict;
+
+use lib './';
+use Errors;
+
+my $LSUSB_BIN = '/bin/lsusb';
+
+my $YK_VID = '1050';
+my $YK_PID = '0010';
+
+# Check to make sure that one (and only one) yubikey is plugged in
+my $usb_output = `$LSUSB_BIN -d '$YK_VID:$YK_PID'`;
+my $exit_code = $? >> 8;
+if (0 != $exit_code) {
+	print STDERR "No YubiKey devices present!\n";
+	exit $ERR{'YKERR_NODEV'};
+}
+my $line_count = scalar(split(/\n/, $usb_output));
+
+if ($line_count > 1) {
+	print STDERR "Multiple YubiKey devices present! Please only plug-in one YubiKey at a time\n";
+	exit $ERR{'YKERR_MULDEV'};
+}
+
+exit $ERR{'YK_NOERR'};

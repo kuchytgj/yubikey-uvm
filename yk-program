@@ -9,12 +9,14 @@ use Getopt::Long;
 
 use lib './';
 use Duo::API;
+use Errors;
 
 my $config_file = '/etc/duo/authapi.cfg';
 
 my $config = new Config::Simple($config_file);
 
 my $LSUSB_BIN = '/bin/lsusb';
+my $YKS_BIN = '/usr/local/src/yubikey-uvm/yk-status';
 my $YKI_BIN = '/usr/local/src/yubikey-personalization/ykinfo';
 my $YKP_BIN = '/usr/local/src/yubikey-personalization/ykpersonalize';
 
@@ -22,14 +24,6 @@ my $YK_VID = '1050';
 my $YK_PID = '0010';
 
 my $script_name = basename($0);
-
-use constant {
-	YK_NOERR => 0,
-	YK_ERR => 1,
-	YKERR_NODEV => 10,
-	YKERR_MULDEV => 11,
-	YKERR_NOUSER => 20,
-};
 
 my $debug;
 my $dryrun;
@@ -49,7 +43,7 @@ sub usage {
 
 unless ($netid) {
 	usage();
-	exit YK_ERR;
+	exit $ERR{'YK_ERR'};
 }
 
 my $resp;
@@ -62,30 +56,37 @@ eval {
 
 if ($@) {
 	print STDERR $@;
-	exit YK_ERR;
+	exit $ERR{'YK_ERR'};
 }
 
 unless(scalar(@$resp)) {
 	print STDERR "No such user\n";
-	exit YKERR_NOUSER;
+	exit $ERR{'YKERR_NOUSER'};
 };
 
 my $user = shift(@$resp);
 my $duo_user_id = $user->{'user_id'};
 
-# Check to make sure that one (and only one) yubikey is plugged in
-my $usb_output = `$LSUSB_BIN -d '$YK_VID:$YK_PID'`;
-my $exit_code = $? >> 8;
-if (0 != $exit_code) {
-	print STDERR "No YubiKey devices present!\n";
-	exit YKERR_NODEV;
-}
-my $line_count = scalar(split(/\n/, $usb_output));
+my $output = `$YKS_BIN`;
+my $rc = $? >> 8;
 
-if ($line_count > 1) {
-	print STDERR "Multiple YubiKey devices present! Please only plug-in one YubiKey at a time\n";
-	exit YKERR_MULDEV;
+unless (0 == $rc) {
+	print STDERR $output;
+	exit $rc;
 }
+# Check to make sure that one (and only one) yubikey is plugged in
+#my $usb_output = `$LSUSB_BIN -d '$YK_VID:$YK_PID'`;
+#my $exit_code = $? >> 8;
+#if (0 != $exit_code) {
+#	print STDERR "No YubiKey devices present!\n";
+#	exit $ERR{'YKERR_NODEV'};
+#}
+#my $line_count = scalar(split(/\n/, $usb_output));
+#
+#if ($line_count > 1) {
+#	print STDERR "Multiple YubiKey devices present! Please only plug-in one YubiKey at a time\n";
+#	exit $ERR{'YKERR_MULDEV'};
+#}
 
 # Pull info from the YubiKey and generate new keys and public id
 my $public_id = `modhex -h \$(openssl rand -hex 6)`;
@@ -98,7 +99,8 @@ my $serial = `$YKI_BIN -s | grep -o -P '(\\d+)'`;
 chomp $serial;
 
 # We use a zeroed private id as this is only useful when the AES key is shared between multiple YubiKeys
-my $private_id = '0' x 12;
+#my $private_id = '0' x 12;
+my $private_id = `openssl rand -hex 6`;
 
 print "serial: $serial\n" if $debug;
 print "public id: $public_id\n" if $debug;
@@ -133,4 +135,4 @@ unless($dryrun) {
 	}
 }
 
-exit YK_NOERR;
+exit $ERR{'YK_NOERR'};
