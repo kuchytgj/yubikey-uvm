@@ -1,0 +1,61 @@
+<script>
+	function append_console(mesg) {
+		if ($('#consoleOutput').html() != '') {
+			mesg = '<br/>' + mesg;
+		}
+		$('#consoleOutput').html($('#consoleOutput').html()+mesg);
+	}
+
+	function clear_console() {
+		$('#consoleOutput').html('');
+	}
+
+	function check_ykstatus() {
+		$.ajax({
+			url: "index.cgi?rm=async_ykstatus",
+			dataType: "json",
+		})
+		.done(function(data) {
+			// rc 0 means yk device is present
+			if (0 == data.code) {
+				if (! $('#ykStatus').hasClass('ykPresent')) {
+					$('#ykStatus').removeClass();
+					$('#ykStatus').addClass('ykPresent');
+					$('#ykStatus').text('Ready');
+					$('#programBtn').prop({ disabled: false });
+					clear_console();
+					append_console("YubiKey detected; ready to program.");
+				}
+			} else {
+				if (! $('#ykStatus').hasClass('ykMissing')) {
+					$('#ykStatus').removeClass();
+					$('#ykStatus').addClass('ykMissing');
+					$('#ykStatus').text('Missing');
+					$('#programBtn').prop({ disabled: true });
+					clear_console();
+					append_console("YubiKey not present; waiting for YubiKey presence");
+				}
+			}
+		});
+	}
+
+	function program_yk() {
+		$.ajax({
+			url: "index.cgi?rm=async_ykprog",
+			dataType: 'json',
+		})
+	}
+
+	$(document).ready(function() {
+		check_ykstatus();
+		window.setInterval(check_ykstatus, 2000);
+	});
+</script>
+<div id="stage">
+	<form id="ykForm">
+		<div id="ykStatusContainer">YubiKey: <span id="ykStatus"></span></div>
+		<div><input placeholder="NetID"></input></div>
+		<div><button id="programBtn">Program YubiKey</button></div>
+		<div id="consoleOutput"></div>
+	</form>
+</div>
