@@ -27,7 +27,6 @@ sub setup {
 sub process_template {
 	my $self = shift;
 
-	my $template = shift;
 	my $vars = shift;
 
 	my $output;
@@ -35,8 +34,8 @@ sub process_template {
 	#print STDERR Dumper($vars);
 
 	$output .= ${$self->tt_process('header.tmpl')};
-	$output .= ${$self->tt_process($template, $vars)};
-	#$output .= ${$self->tt_process('admin/footer.tt2')};
+	$output .= ${$self->tt_process('site_body.tmpl', $vars)};
+	$output .= ${$self->tt_process('footer.tmpl')};
 
 	return \$output
 }
@@ -45,8 +44,9 @@ sub run_start : StartRunMode {
 	my $self = shift;
 
 	my $params = {};
+	$params->{'rm_template'} = 'run_start.tmpl';
 
-	return $self->process_template('run_start.tmpl', $params);
+	return $self->process_template($params);
 }
 
 sub async_ykstatus : Runmode {
@@ -71,7 +71,7 @@ sub async_ykprog : Runmode {
 	}
 
 	my $yk_prog = $self->cfg('YK_PROG');
-	my $output = `$yk_prog 2>&1`;
+	my $output = `$yk_prog --netid $netid 2>&1`;
 	chomp $output;
 	my $c = $? >> 8;
 }

@@ -23,6 +23,7 @@
 					$('#ykStatus').addClass('ykPresent');
 					$('#ykStatus').text('Ready');
 					$('#programBtn').prop({ disabled: false });
+					$('#programBtn').addClass('btn');
 					clear_console();
 					append_console("YubiKey detected; ready to program.");
 				}
@@ -32,6 +33,7 @@
 					$('#ykStatus').addClass('ykMissing');
 					$('#ykStatus').text('Missing');
 					$('#programBtn').prop({ disabled: true });
+					$('#programBtn').removeClass('btn');
 					clear_console();
 					append_console("YubiKey not present; waiting for YubiKey presence");
 				}
@@ -44,18 +46,44 @@
 			url: "index.cgi?rm=async_ykprog",
 			dataType: 'json',
 		})
+		.done(function(data) {
+
+		});
 	}
 
 	$(document).ready(function() {
 		check_ykstatus();
 		window.setInterval(check_ykstatus, 2000);
 	});
+
 </script>
 <div id="stage">
 	<form id="ykForm">
-		<div id="ykStatusContainer">YubiKey: <span id="ykStatus"></span></div>
-		<div><input placeholder="NetID"></input></div>
+		<div id="ykStatusContainer">YubiKey Status: <span id="ykStatus"></span></div>
+		<div><input id='netid' placeholder="NetID"></input></div>
 		<div><button id="programBtn">Program YubiKey</button></div>
-		<div id="consoleOutput"></div>
+		<fieldset>
+			<legend>Console Output</legend>
+			<div id="consoleOutput"></div>
+		</fieldset>
 	</form>
+	<script>
+		$('#programBtn').click(function(event) {
+			event.preventDefault();
+
+			if ('' == $('#netid').val()) {
+				append_console('Error: NetID is blank');
+				$('#netid').animate({
+					backgroundColor: "#daae37"
+				}, {
+					complete: function() { $('#netid').keydown(function() { $('#netid').css('background-color', ''); }); $('#netid').focus(); },
+					duration: 1000,
+				});
+				return -1;
+			}
+			clear_console();
+			append_console("Attempting to program YubiKey...");
+			program_yk();
+		});
+	</script>
 </div>

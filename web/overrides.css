@@ -1,0 +1,15 @@
+.contentwrapper {
+	background: none !important;
+}
+
+.maincontent {
+	margin: 0 !important;
+}
+
+#tools_and_search {
+	height: 58px;
+}
+
+input,button {
+	font-size: 2em !important;
+}

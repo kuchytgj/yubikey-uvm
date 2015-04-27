@@ -16,15 +16,15 @@ body {
 }
 
 #ykForm {
-	background-color: #CFCFCF;
-	border-radius: 1em;
+	background-color: #EFEDED;
+	border-radius: .25em;
 	margin: 0 auto;
 	padding: 1em;
 	width: 30em;
 }
 
 #ykForm > div {
-	margin: .5em;
+	margin: 2em .5em;
 }
 
 #ykStatusContainer {
@@ -32,17 +32,36 @@ body {
 	margin: .5em .5em 1em .5em !important;
 }
 
-input,button {
-	font-size: 2em;
+.btn {
+	background-color: #FFFFFF;
+	border: 1px solid #666666;
+	border-radius: 3px;
+	color: #666666;
+}
+
+.btn:active,.btn:hover {
+	border: 1px solid #b85b32;
+	background-color: #b85b32;
+	color: #FFFFFF;
+}
+
+#netid {
+	border: 1px solid #666666;
+	border-radius: 3px;
+	text-align: center;
+}
+
+fieldset {
+	text-align: left;
 }
 
 #consoleOutput {
 	background-color: #FFFFFF;
-	border: 1px solid #ADADAD;
+	/*border: 1px solid #666666;*/
+	border-radius: 3px;
 	font-family: monospace;
-	height: 10em;
+	height: 15em;
 	overflow: auto;
 	padding: .25em;
 	text-align: left;
-	width: 95%;
 }
