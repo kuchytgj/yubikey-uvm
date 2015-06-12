@@ -10,6 +10,7 @@ require Exporter;
 	YKERR_NODEV => 10,
 	YKERR_MULDEV => 11,
 	YKERR_NOUSER => 20,
+	YKERR_DUO => 30,
 );
 
 1;

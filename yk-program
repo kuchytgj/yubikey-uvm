@@ -60,8 +60,20 @@ if ($@) {
 }
 
 unless(scalar(@$resp)) {
-	print STDERR "No such user\n";
-	exit $ERR{'YKERR_NOUSER'};
+	#TODO: Check if they are a valid NetID and create new account
+	eval {
+		$resp = $duo_api->json_api_call('POST', '/admin/v1/users', {'username'=>$netid});
+	};
+
+	if ($@) {
+		print STDERR "Unable to create user's Duo Security account\n";
+		exit $ERR{'YKERR_DUO'};
+	}
+	#print STDERR "No such user\n";
+	#exit $ERR{'YKERR_NOUSER'};
+	# The Duo retrieve user api call returns a list of user hashrefs
+	# but create user returns a hashref so put it in list ref context
+	$resp = [$resp];
 };
 
 my $user = shift(@$resp);
@@ -74,19 +86,8 @@ unless (0 == $rc) {
 	print STDERR $output;
 	exit $rc;
 }
-# Check to make sure that one (and only one) yubikey is plugged in
-#my $usb_output = `$LSUSB_BIN -d '$YK_VID:$YK_PID'`;
-#my $exit_code = $? >> 8;
-#if (0 != $exit_code) {
-#	print STDERR "No YubiKey devices present!\n";
-#	exit $ERR{'YKERR_NODEV'};
-#}
-#my $line_count = scalar(split(/\n/, $usb_output));
-#
-#if ($line_count > 1) {
-#	print STDERR "Multiple YubiKey devices present! Please only plug-in one YubiKey at a time\n";
-#	exit $ERR{'YKERR_MULDEV'};
-#}
+
+#TODO: Check YK is present?
 
 # Pull info from the YubiKey and generate new keys and public id
 my $public_id = `modhex -h \$(openssl rand -hex 6)`;
@@ -111,7 +112,7 @@ print "aes key: $aes_key\n" if $debug;
 if ($dryrun) {
 	$YKP_BIN .= ' -d';
 }
-my $out = `$YKP_BIN -y -1 -a$aes_key -ouid=$private_id -ofixed=$public_id -oserial-api-visible 2>&1`;
+my $out = `$YKP_BIN -y -1 -a$aes_key -ouid=$private_id -ofixed=$public_id -oserial-api-visible 2>&1 > /dev/null`;
 
 unless($dryrun) {
 	eval {
