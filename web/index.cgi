@@ -2,7 +2,7 @@
 
 use strict;
 
-#use lib '/usr/local/src/yubikey-uvm';
+use lib '/usr/local/src/yubikey-uvm';
 
 use YKApp;
 

@@ -42,12 +42,20 @@
 	}
 
 	function program_yk() {
+		var netid = $('#netid').val();
 		$.ajax({
-			url: "index.cgi?rm=async_ykprog",
+			url: "index.cgi?rm=async_ykprog&netid="+netid,
 			dataType: 'json',
 		})
 		.done(function(data) {
-			consoloe.log(data);
+			console.log(data);
+			var mesg;
+			if (data.code != 0) {
+				mesg = 'ERROR: ' + data.mesg;
+			} else {
+				mesg = data.mesg;
+			}
+			append_console(mesg);
 		});
 	}
 

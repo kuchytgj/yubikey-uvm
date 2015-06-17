@@ -15,13 +15,13 @@ my $usb_output = `$LSUSB_BIN -d '$YK_VID:$YK_PID'`;
 my $exit_code = $? >> 8;
 if (0 != $exit_code) {
 	print STDERR "No YubiKey devices present!\n";
-	exit $ERR{'YKERR_NODEV'};
+	exit $ERR_SYM{'YKERR_NODEV'};
 }
 my $line_count = scalar(split(/\n/, $usb_output));
 
 if ($line_count > 1) {
 	print STDERR "Multiple YubiKey devices present! Please only plug-in one YubiKey at a time\n";
-	exit $ERR{'YKERR_MULDEV'};
+	exit $ERR_SYM{'YKERR_MULDEV'};
 }
 
-exit $ERR{'YK_NOERR'};
+exit $ERR_SYM{'YK_NOERR'};

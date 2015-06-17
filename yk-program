@@ -8,6 +8,7 @@ use File::Basename;
 use Getopt::Long;
 
 use lib './';
+use lib '/usr/local/src/yubikey-uvm/';
 use Duo::API;
 use Errors;
 
@@ -43,7 +44,7 @@ sub usage {
 
 unless ($netid) {
 	usage();
-	exit $ERR{'YK_ERR'};
+	exit $ERR_SYM{'YK_ERR'};
 }
 
 my $resp;
@@ -55,8 +56,8 @@ eval {
 };
 
 if ($@) {
-	print STDERR $@;
-	exit $ERR{'YK_ERR'};
+	print STDERR 'ERR: ' . $@;
+	exit $ERR_SYM{'YK_ERR'};
 }
 
 unless(scalar(@$resp)) {
@@ -67,10 +68,10 @@ unless(scalar(@$resp)) {
 
 	if ($@) {
 		print STDERR "Unable to create user's Duo Security account\n";
-		exit $ERR{'YKERR_DUO'};
+		exit $ERR_SYM{'YKERR_DUO'};
 	}
 	#print STDERR "No such user\n";
-	#exit $ERR{'YKERR_NOUSER'};
+	#exit $ERR_SYM{'YKERR_NOUSER'};
 	# The Duo retrieve user api call returns a list of user hashrefs
 	# but create user returns a hashref so put it in list ref context
 	$resp = [$resp];
@@ -83,11 +84,9 @@ my $output = `$YKS_BIN`;
 my $rc = $? >> 8;
 
 unless (0 == $rc) {
-	print STDERR $output;
+	print STDERR "ERR: " . $output;
 	exit $rc;
 }
-
-#TODO: Check YK is present?
 
 # Pull info from the YubiKey and generate new keys and public id
 my $public_id = `modhex -h \$(openssl rand -hex 6)`;
@@ -97,6 +96,11 @@ my $aes_key = lc(`openssl enc -aes-128-cbc -k \$(openssl rand -base64 32) -nosal
 chomp $aes_key;
 
 my $serial = `$YKI_BIN -s | grep -o -P '(\\d+)'`;
+$rc = $? >> 8;
+unless (0 == $rc) {
+	print STDERR "ERR: Error getting YubiKey serial";
+	exit $rc;
+}
 chomp $serial;
 
 # We use a zeroed private id as this is only useful when the AES key is shared between multiple YubiKeys
@@ -108,11 +112,25 @@ print "public id: $public_id\n" if $debug;
 print "private_id: $private_id\n" if $debug;
 print "aes key: $aes_key\n" if $debug;
 
+# See if token is duplicate
+eval {
+	$resp = $duo_api->json_api_call('GET', '/admin/v1/tokens', {'type'=>'yk', 'serial'=>$serial});
+	if ($@) {
+		print STDERR "Duo Security API failure";
+		exit $ERR_SYM{'YKERR_DUO'};
+	}
+};
+
+if (scalar(@$resp) > 0) {
+	print STDERR "Duplicate YubiKey. This device already exists in Duo Security";
+	exit $ERR_SYM{'YKERR_DUODUP'};
+}
+
 # Burn the info to the YubiKey
 if ($dryrun) {
 	$YKP_BIN .= ' -d';
 }
-my $out = `$YKP_BIN -y -1 -a$aes_key -ouid=$private_id -ofixed=$public_id -oserial-api-visible 2>&1 > /dev/null`;
+my $out = `$YKP_BIN -y -1 -a$aes_key -ouid=$private_id -ofixed=$public_id -oserial-api-visible &> /dev/null`;
 
 unless($dryrun) {
 	eval {
@@ -136,4 +154,4 @@ unless($dryrun) {
 	}
 }
 
-exit $ERR{'YK_NOERR'};
+exit $ERR_SYM{'YK_NOERR'};

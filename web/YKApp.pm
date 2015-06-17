@@ -54,8 +54,8 @@ sub async_ykstatus : Runmode {
 
 	my $yk_status = $self->cfg('YK_STATUS');
 	my $output = `$yk_status 2>&1`;
-	chomp $output;
 	my $rc = $? >> 8;
+	chomp $output;
 
 	return encode_json({'code' => $rc, 'mesg' => $output});
 }
@@ -67,13 +67,15 @@ sub async_ykprog : Runmode {
 	my $netid = $query->param('netid');
 	
 	unless ($netid =~ m/^\w+$/) {
-		return encode_json({'code' => -1, 'mesg' => 'Not a valid NetID'});
+		return encode_json({'code' => '-1', 'mesg' => 'Not a valid NetID'});
 	}
 
 	my $yk_prog = $self->cfg('YK_PROG');
-	my $output = `$yk_prog --netid $netid 2>&1`;
+	my $output = `sudo $yk_prog --netid $netid`;
+	print STDERR $?;
+	my $rc = $? >> 8;
 	chomp $output;
-	my $c = $? >> 8;
+	return encode_json({'code' => $rc, 'mesg' => $ERR_MSG{$rc}});
 }
 
 1;
