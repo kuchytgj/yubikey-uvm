@@ -17,6 +17,7 @@ my $config_file = '/etc/duo/authapi.cfg';
 my $config = new Config::Simple($config_file);
 
 my $LSUSB_BIN = '/bin/lsusb';
+my $MODHEX_BIN = '/usr/local/bin/modhex';
 my $YKS_BIN = '/usr/local/src/yubikey-uvm/yk-status';
 my $YKI_BIN = '/usr/local/src/yubikey-personalization/ykinfo';
 my $YKP_BIN = '/usr/local/src/yubikey-personalization/ykpersonalize';
@@ -89,7 +90,7 @@ unless (0 == $rc) {
 }
 
 # Pull info from the YubiKey and generate new keys and public id
-my $public_id = `modhex -h \$(openssl rand -hex 6)`;
+my $public_id = `$MODHEX_BIN -h \$(openssl rand -hex 6)`;
 chomp $public_id;
 
 my $aes_key = lc(`openssl enc -aes-128-cbc -k \$(openssl rand -base64 32) -nosalt -P|grep key=|tr -d 'key='`);
