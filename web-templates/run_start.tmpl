@@ -48,10 +48,9 @@
 			dataType: 'json',
 		})
 		.done(function(data) {
-			console.log(data);
 			var mesg;
 			if (data.code != 0) {
-				mesg = 'ERROR: ' + data.mesg;
+				mesg = '<span class="error consoleError">ERROR:</span> ' + data.mesg;
 			} else {
 				mesg = data.mesg;
 			}
@@ -80,7 +79,18 @@
 			event.preventDefault();
 
 			if ('' == $('#netid').val()) {
-				append_console('Error: NetID is blank');
+				append_console('<span class="error consoleError">ERROR:</span> NetID is blank');
+				$('#netid').animate({
+					backgroundColor: "#daae37"
+				}, {
+					complete: function() { $('#netid').keydown(function() { $('#netid').css('background-color', ''); }); $('#netid').focus(); },
+					duration: 1000,
+				});
+				return -1;
+			}
+
+			if(! $('#netid').val().match(/[%acct_regex%]/)) {
+				append_console('<span class="error consoleError">ERROR:</span> Invalid NetID format');
 				$('#netid').animate({
 					backgroundColor: "#daae37"
 				}, {

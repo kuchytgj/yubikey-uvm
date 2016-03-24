@@ -10,6 +10,14 @@ body {
 	color: #974B29;
 }
 
+.error {
+	color: #974B29;
+}
+
+.consoleError {
+	font-weight: bold;
+}
+
 #stage {
 	margin: 0 auto;
 	text-align: center;

@@ -44,6 +44,7 @@ sub run_start : StartRunMode {
 	my $self = shift;
 
 	my $params = {};
+	$params->{'acct_regex'} = $self->cfg('ACCT_REGEX');
 	$params->{'rm_template'} = 'run_start.tmpl';
 
 	return $self->process_template($params);
@@ -66,7 +67,7 @@ sub async_ykprog : Runmode {
 
 	my $netid = $query->param('netid');
 	
-	unless ($netid =~ m/^\w+$/) {
+	unless ($netid =~ m/$self->cfg('ACCT_REGEX')/) {
 		return encode_json({'code' => '-1', 'mesg' => 'Not a valid NetID'});
 	}
 
