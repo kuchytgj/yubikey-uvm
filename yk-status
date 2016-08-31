@@ -8,18 +8,24 @@ use Errors;
 my $LSUSB_BIN = '/bin/lsusb';
 
 my $YK_VID = '1050';
-my $YK_PID = '0010';
+my @YK_PIDS = qw(0010 0407);
+
+my $YK_PRESENT = 0;
 
 # Check to make sure that one (and only one) yubikey is plugged in
-my $usb_output = `$LSUSB_BIN -d '$YK_VID:$YK_PID'`;
-my $exit_code = $? >> 8;
-if (0 != $exit_code) {
+foreach my $YK_PID (@YK_PIDS) {
+	my $usb_output = `$LSUSB_BIN -d '$YK_VID:$YK_PID'`;
+	my $exit_code = $? >> 8;
+
+	if (0 == $exit_code) {
+		$YK_PRESENT += scalar(split(/\n/, $usb_output));
+	}
+}
+if (0 == $YK_PRESENT) {
 	print STDERR "No YubiKey devices present!\n";
 	exit $ERR_SYM{'YKERR_NODEV'};
 }
-my $line_count = scalar(split(/\n/, $usb_output));
-
-if ($line_count > 1) {
+if ($YK_PRESENT > 1) {
 	print STDERR "Multiple YubiKey devices present! Please only plug-in one YubiKey at a time\n";
 	exit $ERR_SYM{'YKERR_MULDEV'};
 }
