@@ -8,7 +8,7 @@ use Errors;
 my $LSUSB_BIN = '/bin/lsusb';
 
 my $YK_VID = '1050';
-my @YK_PIDS = qw(0010 0407);
+my @YK_PIDS = qw(0010 0110 0407);
 
 my $YK_PRESENT = 0;
 
